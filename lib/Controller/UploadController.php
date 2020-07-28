@@ -3,7 +3,7 @@
  
  use OCP\AppFramework\Http;
  use OCA\VueExample\Http\BlankResponse;
-
+use OCP\AppFramework\Http\TemplateResponse;
  use OCP\IRequest;
  use OCP\AppFramework\Controller;
  use OCA\VueExample\Service\Flow\Config;
@@ -11,9 +11,10 @@
  use OCA\VueExample\Service\Flow\File;
 
  class UploadController extends Controller {
-
-     public function __construct(string $AppName, IRequest $request){
-         parent::__construct($AppName, $request);
+	protected $appName;
+     public function __construct(string $appName, IRequest $request){
+         parent::__construct($appName, $request);
+		 $this->appName = $appName;
      }
      
     private function calculatePaths() {
@@ -43,6 +44,11 @@
       * @NoCSRFRequired
       */
      public function checkChunk() {
+		 
+		$response = new TemplateResponse($this->appName, 'main');
+		return $response;
+		
+		
         $this->calculatePaths();
         
         $file = new File($this->config, $this->request);
@@ -64,49 +70,53 @@
       * @NoAdminRequired
       * @NoCSRFRequired
       */
-     public function upload() {
-         
-         $this->calculatePaths();
-        
-        // check if path is valid
-        if (!\OC\Files\Filesystem::isValidPath($this->path)) {
-            \OCP\Util::writeLog('VueExample', "Upload to a invalid Path failed", \OCP\ILogger::ERROR);
-            print("invalid path");
-            return new BlankResponse(400);
-        }
-        
-        // Create temp folder
-        if(!file_exists($this->temp)) {
-        	mkdir($this->temp);
-        }
-        
-        // Create destination directory
-        if(!\OC\Files\Filesystem::file_exists(dirname($this->path))) {
-        	\OC\Files\Filesystem::mkdir(dirname($this->path));
-        }
-        
-        $file = new File($this->config, $this->request);
-        
-        // save chunk
-        if ($file->validateChunk()) {
-            $file->saveChunk();
-        } else {
-            // error, invalid chunk upload request, retry
-            return new BlankResponse(400);
-        }
-        
-        //check if last chunk
-        if ($file->validateFile()) {
-            //assemble and move to destination
-            if($file->save($this->path)) {
-                $this->updateFileCache($this->path);
-                return new BlankResponse(200);
-            }else {
-                return new BlankResponse(400);
-            }
-        }
-        
-        return new BlankResponse(200);
+     public function upload($request) {
+		
+		$file_name =  $_FILES["file"]['name'];
+		$file_size =  $_FILES["file"]['size'];
+		$username='admin';
+		$password='Admin?999';		
+		$fp = fopen($_FILES["file"]["tmp_name"], 'r');
+
+		$c = curl_init();
+		curl_setopt($c, CURLOPT_URL, "http://66.175.217.67/nextclou/remote.php/webdav/dummy/".$file_name);
+		curl_setopt($c, CURLOPT_USERPWD, $username . ':' . $password); 
+		curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($c, CURLOPT_PUT, true); 
+		curl_setopt($c, CURLOPT_INFILESIZE_LARGE, $file_size);
+		curl_setopt($c, CURLOPT_INFILE, $fp);
+		$ret = curl_exec($c);
+		
+		if (curl_errno($c)) {
+			// this would be your first hint that something went wrong
+			$response['code']="500";
+			$response['msg']= curl_error($c);
+		} else {
+			// check the HTTP status code of the request
+			$resultStatus = curl_getinfo($c, CURLINFO_HTTP_CODE);
+			if ($resultStatus == 200) {
+				$response['code']="200";
+					$response['msg']="Uploaded";
+			} else {
+				// the request did not complete as expected. common errors are 4xx
+				// (not found, bad request, etc.) and 5xx (usually concerning
+				// errors/exceptions in the remote script execution)
+
+				if($resultStatus=='201'){
+					$response['code']="200";
+					$response['msg']="Uploaded";
+				}else{
+					$response['code']=$resultStatus;
+					$response['msg']="error";
+				}
+			}
+		}
+
+		curl_close($ch);
+		
+		
+		
+        return json_encode($response);
     }
     
     private function updateFileCache($path) {
