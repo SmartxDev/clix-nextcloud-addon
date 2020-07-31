@@ -13,6 +13,16 @@ export default {
     url: String
   },
   mounted: function () {
+  console.log('webviewer mounted')
+        WebViewer({
+            path: this.path,
+            initialDoc: this.url, // replace with your own PDF file
+          }, this.$refs.viewer).then((instance) => {
+            // call apis here
+          });
+    },
+      updated: function () {
+  console.log('webviewer updated')
         WebViewer({
             path: this.path,
             initialDoc: this.url, // replace with your own PDF file

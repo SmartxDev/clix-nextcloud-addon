@@ -114,11 +114,104 @@ use OCP\AppFramework\Http\TemplateResponse;
 
 		curl_close($ch);
 		
-		
-		
-        return json_encode($response);
+		/* Get All Files from Dummy Folder */
+		$handle = curl_init();
+
+		 $input_xml = '<d:propfind  xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+		  <d:prop>
+			<d:status /> 
+		  </d:prop>
+		</d:propfind>';
+
+
+    $url = "http://66.175.217.67/nextclou/remote.php/dav/files/".$username."/dummy/";
+	
+    // Set the url
+    curl_setopt($handle, CURLOPT_URL, $url);
+	curl_setopt( $handle, CURLOPT_HTTPHEADER, array('Content-Type: text/xml'));
+	curl_setopt( $handle, CURLOPT_POST, true );
+	curl_setopt($handle, CURLOPT_USERPWD, $username . ':' . $password); 
+    // Set the result output to be a string.
+    curl_setopt($handle, CURLOPT_CUSTOMREQUEST, "PROPFIND" ); 
+    curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+	
+	curl_setopt($handle, CURLOPT_POSTFIELDS, $input_xml);
+	//curl_setopt($handle, CURLOPT_RETURNTRANSFER, 1);
+    //curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, 300);
+	
+    $output = curl_exec($handle);
+	
+	$output	=	strip_tags($output);
+    curl_close($handle);
+
+    $output	=	explode("HTTP/1.1 404 Not Found",$output);
+	 unset($output[0]);
+	  array_pop($output);
+		foreach($output as $key=> $value)
+		{
+		  if (strpos($value,'.pdf') !== false) 
+		 {
+		   // print key containing searched string
+		  }else{
+			  unset($output[$key]);
+		  }
+		};
+        return json_encode(array_merge($response,$output));
     }
-    
+    /**
+      * @NoAdminRequired
+      * @NoCSRFRequired
+      */
+	public function getPdf() {
+		$username='admin';
+		$password='Admin?999';		
+		
+		/* Get All Files from Dummy Folder */
+		$handle = curl_init();
+
+		 $input_xml = '<d:propfind  xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+		  <d:prop>
+			<d:status /> 
+		  </d:prop>
+		</d:propfind>';
+
+
+    $url = "http://66.175.217.67/nextclou/remote.php/dav/files/".$username."/";
+	
+    // Set the url
+    curl_setopt($handle, CURLOPT_URL, $url);
+	curl_setopt( $handle, CURLOPT_HTTPHEADER, array('Content-Type: text/xml'));
+	curl_setopt( $handle, CURLOPT_POST, true );
+	curl_setopt($handle, CURLOPT_USERPWD, $username . ':' . $password); 
+    // Set the result output to be a string.
+    curl_setopt($handle, CURLOPT_CUSTOMREQUEST, "PROPFIND" ); 
+    curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+	
+	curl_setopt($handle, CURLOPT_POSTFIELDS, $input_xml);
+	//curl_setopt($handle, CURLOPT_RETURNTRANSFER, 1);
+    //curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, 300);
+	
+    $output = curl_exec($handle);
+	
+	$output	=	strip_tags($output);
+    curl_close($handle);
+
+    $output	=	explode("HTTP/1.1 404 Not Found",$output);
+	 unset($output[0]);
+	  array_pop($output);
+	  
+	  foreach($output as $key=> $value)
+		{
+		  if (strpos($value,'.pdf') !== false) 
+		 {
+		   // print key containing searched string
+		  }else{
+			  unset($output[$key]);
+		  }
+		}
+        return json_encode($output);
+    }
+	
     private function updateFileCache($path) {
         \OC\Files\Filesystem::touch($path);
 
