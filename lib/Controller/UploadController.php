@@ -164,6 +164,24 @@ use OCP\AppFramework\Http\TemplateResponse;
       */
 	public function getPdf() {
 		$username='admin';
+		$password='Admin?999';
+		
+		$urls		=	array();
+		$data		=	array();
+		$urls[1]	=	"http://66.175.217.67/nextclou/remote.php/dav/files/".$username."/";
+		$urls[2]	=	"http://66.175.217.67/nextclou/remote.php/dav/files/".$username."/dummy/";
+		$urls[3]	=	"http://66.175.217.67/nextclou/remote.php/dav/files/".$username."/Documents/";
+		foreach($urls as $url){
+			$response	=	$this->getCurlData($url);
+			$data		=	array_merge($data,$response);
+		}
+		
+		return json_encode($data);
+    }
+	
+	
+	private function getCurlData($url) {
+       $username='admin';
 		$password='Admin?999';		
 		
 		/* Get All Files from Dummy Folder */
@@ -174,9 +192,6 @@ use OCP\AppFramework\Http\TemplateResponse;
 			<d:status /> 
 		  </d:prop>
 		</d:propfind>';
-
-
-    $url = "http://66.175.217.67/nextclou/remote.php/dav/files/".$username."/";
 	
     // Set the url
     curl_setopt($handle, CURLOPT_URL, $url);
@@ -209,7 +224,10 @@ use OCP\AppFramework\Http\TemplateResponse;
 			  unset($output[$key]);
 		  }
 		}
-        return json_encode($output);
+		
+	$url2 = "http://66.175.217.67/nextclou/remote.php/dav/files/".$username."/dummy/";
+	
+        return $output;
     }
 	
     private function updateFileCache($path) {
