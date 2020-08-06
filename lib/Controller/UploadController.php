@@ -9,12 +9,22 @@ use OCP\AppFramework\Http\TemplateResponse;
  use OCA\VueExample\Service\Flow\Config;
  use OCA\VueExample\Service\Flow\Request;
  use OCA\VueExample\Service\Flow\File;
+ use OCP\IUserSession;
+ use OCP\IConfig;
+ 
+ 
+ use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IDBConnection;
 
  class UploadController extends Controller {
 	protected $appName;
-     public function __construct(string $appName, IRequest $request){
+	private $db;
+     public function __construct(string $appName, IRequest $request, IDBConnection $db, IUserSession $userSession,IConfig $config){
+		 $this->db = $db;
          parent::__construct($appName, $request);
 		 $this->appName = $appName;
+		 $this->config = $config;
+		 $this->userSession     = $userSession;
      }
      
     private function calculatePaths() {
@@ -175,8 +185,70 @@ use OCP\AppFramework\Http\TemplateResponse;
 			$response	=	$this->getCurlData($url);
 			$data		=	array_merge($data,$response);
 		}
+		$new_data	=	array();
+		$count=0;
+		foreach ($data as $urls){
+			$url_breaks	= explode('/',$urls);
+			$new_data[$count]['file_name']= utf8_decode(urldecode(end($url_breaks)));
+			$new_data[$count]['file_url']= $urls;	
+			$new_data[$count]	=	(object) $new_data[$count];
+			$count++;
+		}
+		$user = $this->userSession->getUser()->getUID();
 		
-		return json_encode($data);
+		//echo '<pre>';
+		//print_r($new_data);
+		$qb = $this->db->getQueryBuilder();
+        $qb->select('*')->from('activity');
+		
+		
+        $cursor = $qb->execute();
+        $row = $cursor->fetchAll();
+        $cursor->closeCursor();
+		
+		$all_created_files	=	array();
+		$all_deleted_files	=	array();
+		$c=0;
+		foreach($row as $value){
+			if($value['user']==$user && $value['type']=='file_created'){
+				if (strpos($value['file'], '.pdf') !== false) {
+					$raw_object	=	json_decode($value['subjectparams']);
+					$raw_array	=	(array) $raw_object[0];
+					$keys	=	array_keys($raw_array);
+					$all_created_files[$c]['id']= $keys[0];		
+					$file_name= explode('/',$value['file']);
+					$all_created_files[$c]['file_name']	=	end($file_name);
+					$uri_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+					$uri_segments = explode('/', $uri_path);
+					$uri= $uri_segments[1];
+					$all_created_files[$c]['file_url']	=	'/'.$uri.'/remote.php/dav/files/'.$user.$value['file'];
+				}
+			}elseif($value['user']==$user && $value['type']=='file_deleted'){
+				if (strpos($value['file'], '.pdf') !== false) {
+					$raw_object	=	json_decode($value['subjectparams']);
+					$raw_array	=	(array) $raw_object[0];
+					$keys	=	array_keys($raw_array);
+					$all_deleted_files[]= $keys[0];
+				}
+			}
+		$c++;	
+		}
+		//remove deleted files
+		foreach($all_created_files as $files){
+			if(in_array($files['id'], $all_deleted_files)){
+				
+			}else{
+				unset($files['id']);
+				$all_pdf_files[]	=	(object) $files;
+			}
+		}
+		//print_r($all_pdf_files);
+		//print_r($new_data);
+		//die;
+		
+		//print_r($this->config);
+		
+		return json_encode($all_pdf_files);
     }
 	
 	

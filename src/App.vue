@@ -2,7 +2,7 @@
 	<Content :class="{'icon-loading': loading}" app-name="vueexample">
 		<AppNavigation>
 			<template id="app-vueexample-navigation" #list>
-				<div class="upload-cont" style="padding: 10px; border-bottom: 1px solid #f3f3f3;">
+				<!-- <div class="upload-cont" style="padding: 10px; border-bottom: 1px solid #f3f3f3;">
 					<label class="upload">
 						upload
 						<input type="file"
@@ -11,13 +11,13 @@
 							@change="filesSelected" />
 					</label>
 					<span v-if="file">{{file.name}}</span>
-				</div>
+				</div> -->
 				<div style="padding-left: 10px">
 					<div class="file-link"
 						v-for="pdf in pdfs"
-						:key="pdf.url"
-						@click="changeFile(pdf.url)">
-						{{pdf.name}}
+						:key="pdf.file_url"
+						@click="changeFile(pdf.file_url)">
+						{{pdf.file_name}}
 					</div>
 				</div>
 			</template>
@@ -95,18 +95,8 @@ export default {
 		fetchFiles() {
 		axios.get('http://66.175.217.67/nextclou/index.php/apps/vueexample/getfile').then(res => {
 			console.log('response', JSON.parse(res.data))
-			const parsedObj = JSON.parse(res.data);
-			const newArray = [];
-			for (const property in parsedObj) {
-					const newObj = {
-						url: `http://66.175.217.67/${parsedObj[property]}`,
-						name: `http://66.175.217.67/${parsedObj[property]}`.slice(64, `http://66.175.217.67/${parsedObj[property]}`.length)
-					}
-					// newArray.push(parsedObj[property])
-					newArray.push(newObj)
-			}
-			console.log('asdadasdad', newArray)	
-			this.pdfs = [...newArray]
+			const parsedArray = JSON.parse(res.data);
+			this.pdfs = [...parsedArray]
 			}).catch(err => {
 			console.info('Something went wrong', err)
 		})
