@@ -11,7 +11,7 @@ use OCP\AppFramework\Http\TemplateResponse;
  use OCA\VueExample\Service\Flow\File;
  use OCP\IUserSession;
  use OCP\IConfig;
- 
+ use OCP\IURLGenerator;
  
  use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
@@ -19,12 +19,13 @@ use OCP\IDBConnection;
  class UploadController extends Controller {
 	protected $appName;
 	private $db;
-     public function __construct(string $appName, IRequest $request, IDBConnection $db, IUserSession $userSession,IConfig $config){
+     public function __construct(string $appName, IURLGenerator $urlGenerator, IRequest $request, IDBConnection $db, IUserSession $userSession,IConfig $config){
 		 $this->db = $db;
          parent::__construct($appName, $request);
 		 $this->appName = $appName;
 		 $this->config = $config;
 		 $this->userSession     = $userSession;
+		 $this->urlGenerator = $urlGenerator;
      }
      
     private function calculatePaths() {
@@ -218,10 +219,11 @@ use OCP\IDBConnection;
 					$all_created_files[$c]['id']= $keys[0];		
 					$file_name= explode('/',$value['file']);
 					$all_created_files[$c]['file_name']	=	end($file_name);
-					$uri_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-					$uri_segments = explode('/', $uri_path);
+					//$uri_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+					//$uri_segments = explode('/', $uri_path);
 					$uri= $uri_segments[1];
-					$all_created_files[$c]['file_url']	=	'/'.$uri.'/remote.php/dav/files/'.$user.$value['file'];
+					$path= $this->urlGenerator->getBaseUrl();
+					$all_created_files[$c]['file_url']	=	$path.'/remote.php/dav/files/'.$user.$value['file'];
 				}
 			}elseif($value['user']==$user && $value['type']=='file_deleted'){
 				if (strpos($value['file'], '.pdf') !== false) {
@@ -233,6 +235,7 @@ use OCP\IDBConnection;
 			}
 		$c++;	
 		}
+		$all_pdf_files	= array();
 		//remove deleted files
 		foreach($all_created_files as $files){
 			if(in_array($files['id'], $all_deleted_files)){
@@ -248,7 +251,7 @@ use OCP\IDBConnection;
 		
 		//print_r($this->config);
 		
-		return json_encode($all_pdf_files);
+		return json_encode($all_pdf_files,JSON_PRETTY_PRINT);
     }
 	
 	

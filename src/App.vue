@@ -72,7 +72,7 @@ export default {
 			this.file = event.target.files[0]
 			const formData = new FormData()
 			formData.append('file', event.target.files[0])
-			axios.post('http://66.175.217.67/nextclou/index.php/apps/vueexample/upload', formData, {
+			axios.post(`${window.location.href}/upload`, formData, {
 				'Content-Type': 'multipart/form-data'
 			}).then(res => {
 				console.info('parsed', JSON.parse(res.data))
@@ -93,7 +93,8 @@ export default {
 			})
 		},
 		fetchFiles() {
-		axios.get('http://66.175.217.67/nextclou/index.php/apps/vueexample/getfile').then(res => {
+		console.log('asdadad', window.location.href);
+		axios.get(`${window.location.href}/getfile`).then(res => {
 			console.log('response', JSON.parse(res.data))
 			const parsedArray = JSON.parse(res.data);
 			this.pdfs = [...parsedArray]
